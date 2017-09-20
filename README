@@ -1,0 +1,4 @@
+Prerequisites for demand learning:
+
+pip install -r requirements.txt
+sudo apt-get install python-tk
