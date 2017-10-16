@@ -145,11 +145,11 @@ def aggregate():
     global merchant_id, data_products, test_data_products, buy_offer_df, market_situation_df, test_df
 
     own_ms_view = market_situation_df
-    own_sales = buy_offer_df[buy_offer_df['http_code'] == 200].copy()
+    own_sales = buy_offer_df#[buy_offer_df['http_code'] == 200].copy()
     test_data = test_df
     own_sales.loc[:, 'timestamp'] = match_timestamps(own_ms_view['timestamp'], own_sales['timestamp'])
 
-    if test_df == None:
+    if test_df is None:
         X_train, X_test = train_test_split(
             pd.read_csv(args.train), test_size=0.4, random_state=0)
         test_data = X_test
@@ -321,7 +321,7 @@ def export_models():
 
 def output():
     global result
-    if(args.output == None):
+    if(args.output is None):
         return
 
     output = open(args.output, "w")
