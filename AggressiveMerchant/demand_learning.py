@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 from sklearn.externals import joblib
 from sklearn.linear_model import PassiveAggressiveRegressor
-from sklearn.metrics import log_loss
 from sklearn.metrics import r2_score
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
@@ -97,7 +96,7 @@ def load_offline():
     global market_situation_df, buy_offer_df, test_df
     market_situation_df = pd.read_csv(args.train)
     buy_offer_df = pd.read_csv(args.buy)
-    if args.test != None:
+    if args.test is not None:
         test_df = pd.read_csv(args.test)
 
 def extract_features_from_offer_snapshot(offers_df, merchant_id, product_id=None):
@@ -165,7 +164,7 @@ def aggregate():
             features = extract_features_from_offer_snapshot(group, merchant_id)
             features.update({
                 'timestamp': timestamp,
-                'sold': own_sales[own_sales['timestamp'] == timestamp]['amount'].sum(),
+                'sold': own_sales[own_sales['timestamp'] == timestamp]['amount'].sum()
             })
             dict_array.append(features)
 
@@ -183,7 +182,7 @@ def aggregate():
             features = extract_features_from_offer_snapshot(group, merchant_id)
             features.update({
                 'timestamp': timestamp,
-                'sold': own_sales[own_sales['timestamp'] == timestamp]['amount'].sum(),
+                'sold': own_sales[own_sales['timestamp'] == timestamp]['amount'].sum()
             })
             dict_array.append(features)
 
@@ -204,7 +203,7 @@ def mcFadden_R2(y_true, y_pred):
     logistic_regression = PassiveAggressiveRegressor()
     logistic_regression.fit(constant_feature, y_true)
     null_model_prediction = logistic_regression.predict(constant_feature)
-    print('avg log-loss null-model: {}'.format(log_loss(y_true, null_model_prediction)))
+    print('avg log-likelihood null-model: {}'.format(log_likelihood(y_true, null_model_prediction)))
 
     L = log_likelihood(y_true, y_pred)
     L_null = log_likelihood(y_true, null_model_prediction)
@@ -217,6 +216,8 @@ def train(params = [1.0, 0.001]):
 
     for product_id in data_products:
         data = data_products[product_id].dropna()
+        if len(data.index) <= 0:
+            return
         X = data[['amount_of_all_competitors',
                   'average_price_on_market',
                   'distance_to_cheapest_competitor',
@@ -226,7 +227,7 @@ def train(params = [1.0, 0.001]):
         y = data['sold'].copy()
         y[y > 1] = 1
 
-        model = PassiveAggressiveRegressor(n_iter = 1000, tol = 0.0001, normalize=True)
+        model = PassiveAggressiveRegressor(n_iter = 1000)
         model.set_params(C=_C,
                          epsilon=_epsilon)
 
@@ -270,6 +271,8 @@ def cross_validate(params):
     _C, _epsilon = params
 
     data = test_data_products[1].dropna()
+    if len(data.index) <= 0:
+        return 0
     X = data[['amount_of_all_competitors',
               'average_price_on_market',
               'distance_to_cheapest_competitor',
@@ -278,7 +281,7 @@ def cross_validate(params):
               ]]
     y = data['sold'].copy()
     y[y > 1] = 1
-    model = PassiveAggressiveRegressor(max_iter = 1000, tol = 0.0001)
+    model = PassiveAggressiveRegressor(n_iter = 1000)
     model.set_params(C=_C,
                      epsilon=_epsilon)
 
@@ -343,7 +346,7 @@ if __name__ == '__main__':
     kafka_api = KafkaApi(host=kafka_host)
 
     print('load')
-    if((args.buy != None) and args.train != None):
+    if((args.buy is not None) and args.train is not None):
         load_offline()
     else:
         try:

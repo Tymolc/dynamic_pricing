@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 from sklearn.externals import joblib
 from sklearn.linear_model import BayesianRidge
-from sklearn.metrics import log_loss
 from sklearn.metrics import r2_score
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
@@ -97,7 +96,7 @@ def load_offline():
     global market_situation_df, buy_offer_df, test_df
     market_situation_df = pd.read_csv(args.train)
     buy_offer_df = pd.read_csv(args.buy)
-    if args.test != None:
+    if args.test is not None:
         test_df = pd.read_csv(args.test)
 
 def extract_features_from_offer_snapshot(offers_df, merchant_id, product_id=None):
@@ -165,7 +164,7 @@ def aggregate():
             features = extract_features_from_offer_snapshot(group, merchant_id)
             features.update({
                 'timestamp': timestamp,
-                'sold': own_sales[own_sales['timestamp'] == timestamp]['amount'].sum(),
+                'sold': own_sales[own_sales['timestamp'] == timestamp]['amount'].sum()
             })
             dict_array.append(features)
 
@@ -183,7 +182,7 @@ def aggregate():
             features = extract_features_from_offer_snapshot(group, merchant_id)
             features.update({
                 'timestamp': timestamp,
-                'sold': own_sales[own_sales['timestamp'] == timestamp]['amount'].sum(),
+                'sold': own_sales[own_sales['timestamp'] == timestamp]['amount'].sum()
             })
             dict_array.append(features)
 
@@ -204,20 +203,21 @@ def mcFadden_R2(y_true, y_pred):
     logistic_regression = BayesianRidge()
     logistic_regression.fit(constant_feature, y_true)
     null_model_prediction = logistic_regression.predict(constant_feature)
-    print('avg log-loss null-model: {}'.format(log_loss(y_true, null_model_prediction)))
+    print('avg log-likelihood null-model: {}'.format(log_likelihood(y_true, null_model_prediction)))
 
     L = log_likelihood(y_true, y_pred)
     L_null = log_likelihood(y_true, null_model_prediction)
     return 1 - L / L_null
 
-def train(params = [0, 0, 0, 0]):
+def train(params = [10**-6, 10**-6, 10**-6, 10**-6]):
     global data_products, model_products
 
     alpha1, alpha2, lambda1, lambda2 = params
 
     for product_id in data_products:
         data = data_products[product_id].dropna()
-        print(len(data_products[product_id]))
+        if len(data.index) <= 0:
+            return
         X = data[['amount_of_all_competitors',
                   'average_price_on_market',
                   'distance_to_cheapest_competitor',
@@ -244,6 +244,8 @@ def classify():
     y_true = []
     for product_id in data_products:
         data = data_products[product_id].dropna()
+        if len(data.index) <= 0:
+            return
         X = data[['amount_of_all_competitors',
                   'average_price_on_market',
                   'distance_to_cheapest_competitor',
@@ -272,6 +274,8 @@ def cross_validate(params):
     alpha1, alpha2, lambda1, lambda2 = params
 
     data = test_data_products[1].dropna()
+    if len(data.index) <= 0:
+        return 0
     X = data[['amount_of_all_competitors',
               'average_price_on_market',
               'distance_to_cheapest_competitor',
@@ -348,7 +352,7 @@ if __name__ == '__main__':
     kafka_api = KafkaApi(host=kafka_host)
 
     print('load')
-    if(args.buy != None and args.train != None):
+    if(args.buy is not None and args.train is not None):
         load_offline()
     else:
         try:

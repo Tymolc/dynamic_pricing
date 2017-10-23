@@ -14,7 +14,18 @@ from merchant_sdk.models import Offer
 
 from machine_learning.market_learning import extract_features_from_offer_snapshot
 
-merchant_token = "{{API_TOKEN}}"
+merchant_token = "DaywOe3qbtT3C8wBBSV+zBOH55DVz40L6PH1/1p9xCM="
+parser = argparse.ArgumentParser(description='PriceWars Merchant')
+parser.add_argument('--port', type=int,
+                    help='port to bind flask App to')
+parser.add_argument('-k', '--kafka_host', metavar='kafka_host', type=str,
+                    help='endpoint of kafka reverse proxy', required=False)
+parser.add_argument('-m', '--merchant', metavar='merchant_id', type=str, default=None,
+                    help='merchant ID', required=False)
+parser.add_argument('-t', '--train', metavar='market_situation', type=str, help = 'market situation', required=False)
+parser.add_argument('-b', '--buy', metavar='buy_offers', type=str, help = 'buy offers', required=False)
+parser.add_argument('--test', metavar='test_offers', type=str, help = 'test offers', required=False)
+parser.add_argument('-o', '--output', metavar='output', type=str, help = 'output file', required=False)
 
 settings = {
     'merchant_id': MerchantBaseLogic.calculate_id(merchant_token),
@@ -36,10 +47,12 @@ def make_relative_path(path):
 
 
 def trigger_learning(merchant_token, kafka_host):
+    args = parser.parse_args()
     fixed_path = make_relative_path("demand_learning.py")
     old_dir = os.getcwd()
     os.chdir(os.path.dirname(fixed_path))
-    os.system('python3 "{:s}" -t "{:s}" -k "{:s}" >> learning.log &'.format(fixed_path, merchant_token, kafka_host))
+    os.system('python3 "{:s}" -k "{:s}" --merchant "{:s}" --train "{:s}" --buy "{:s}" --test "{:s}" -o "{:s}" >> learning.log &'
+        .format(fixed_path, kafka_host, merchant_token, args.train, args.buy, args.test, args.output))
     os.chdir(old_dir)
 
 
@@ -236,9 +249,6 @@ merchant_server = MerchantServer(merchant_logic)
 app = merchant_server.app
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='PriceWars Merchant')
-    parser.add_argument('--port', type=int,
-                        help='port to bind flask App to')
     args = parser.parse_args()
 
     app.run(host='0.0.0.0', port=args.port)
