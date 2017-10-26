@@ -333,6 +333,7 @@ def export_models():
 
 def output():
     global result
+    np.set_printoptions(threshold=np.inf)
     if(args.output is None):
         return
 
@@ -376,5 +377,4 @@ if __name__ == '__main__':
     optimize()
     print('export')
     export_models()
-    print('output')
     output()

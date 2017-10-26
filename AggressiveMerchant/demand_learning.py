@@ -86,6 +86,7 @@ def download():
     global market_situation_df, buy_offer_df
 
     market_situation_csv_url = kafka_api.request_csv_export_for_topic('marketSituation')
+    print(market_situation_csv_url)
     market_situation_df = pd.read_csv(market_situation_csv_url)
     buy_offer_csv_url = kafka_api.request_csv_export_for_topic('buyOffer')
     buy_offer_df = pd.read_csv(buy_offer_csv_url)
@@ -213,7 +214,6 @@ def mcFadden_R2(y_true, y_pred):
 
 def train(params = [1.0, 0.001]):
     global data_products, model_products
-
     _C, _epsilon= params
 
     for product_id in data_products:
@@ -236,7 +236,6 @@ def train(params = [1.0, 0.001]):
         model.fit(X, y)
 
         model_products[product_id] = model
-        print(model_products)
 
 def classify():
     global data_products, model_products, result
@@ -329,6 +328,7 @@ def export_models():
 
 def output():
     global result
+    np.set_printoptions(threshold=np.inf)
     if(args.output is None):
         return
 
