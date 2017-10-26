@@ -22,8 +22,8 @@ from merchant_sdk.api import KafkaApi, PricewarsRequester
     Input
 '''
 # merchant_token = 'z35jXmfpJaK3KnpQpEV3DGQwBZocVgVVjZFHMv7fWRiqFYH5mm8z3YwE8lqeSMAB'
-# merchant_token = 'SHNpRINv1i78domwV1czWq8idb63DsGfAcVcusYvbe4FTqByroyOf77JiDMv6bbH'
-merchant_token = 'vfOxgR0UsXlnvEg6HoDV6ybPdjes0ERvtpsaHt5ARrxN5eTMTgrYfSxJCcBCqc7k'
+# merchant_token = 'vfOxgR0UsXlnvEg6HoDV6ybPdjes0ERvtpsaHt5ARrxN5eTMTgrYfSxJCcBCqc7k'
+merchant_token = None
 merchant_id = None
 kafka_api = None
 
@@ -36,6 +36,8 @@ def parse_arguments():
                         help='endpoint of kafka reverse proxy', required=False)
     parser.add_argument('-m', '--merchant', metavar='merchant_id', type=str, default=None,
                         help='merchant ID', required=False)
+    parser.add_argument('--token', metavar='merchant_token', type=str, default=None,
+                        help='merchant Token', required=False)
     parser.add_argument('-t', '--train', metavar='market_situation', type=str, help = 'market situation', required=False)
     parser.add_argument('-b', '--buy', metavar='buy_offers', type=str, help = 'buy offers', required=False)
     parser.add_argument('--test', metavar='test_offers', type=str, help = 'test offers', required=False)
@@ -150,7 +152,7 @@ def aggregate():
 
     if test_df is None:
         X_train, X_test = train_test_split(
-            pd.read_csv(args.train), test_size=0.4, random_state=0)
+            own_ms_view, test_size=0.4, random_state=0)
         test_data = X_test
         own_ms_view = X_train
 
@@ -234,14 +236,17 @@ def train(params = [1.0, 0.001]):
         model.fit(X, y)
 
         model_products[product_id] = model
+        print(model_products)
 
 def classify():
-    global data_products, result
+    global data_products, model_products, result
     result = []
     y_predicted_sale = []
     y_true = []
     for product_id in data_products:
         data = data_products[product_id].dropna()
+        if len(data.index) <= 0:
+            return
         X = data[['amount_of_all_competitors',
                   'average_price_on_market',
                   'distance_to_cheapest_competitor',
@@ -338,9 +343,13 @@ if __name__ == '__main__':
     print('start learning')
     args = parse_arguments()
 
-    # merchant_token = args.merchant_token
-    merchant_id = args.merchant
-    # PricewarsRequester.add_api_token(merchant_token)
+    if(args.token is not None):
+        merchant_token = args.token
+        PricewarsRequester.add_api_token(merchant_token)
+        merchant_id = base64.b64encode(hashlib.sha256(merchant_token.encode('utf-8')).digest()).decode('utf-8')
+
+    if(args.merchant is not None):
+        merchant_id = args.merchant
 
     kafka_host = args.kafka_host
     kafka_api = KafkaApi(host=kafka_host)
